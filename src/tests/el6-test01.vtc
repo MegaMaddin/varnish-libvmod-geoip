@@ -1,0 +1,28 @@
+varnishtest "Test libvmod-geoip functionality"
+
+server s1 {
+       rxreq
+       txresp
+} -start
+
+varnish v1 -vcl+backend {
+	import geoip from "${vmod_topbuild}/src/.libs/libvmod_geoip.so";
+
+    sub vcl_init {
+        geoip.load_geoip_db("/usr/share/GeoIP/GeoIP.dat");
+    }
+
+	sub vcl_deliver {
+		set resp.http.Country-Code = geoip.get_country_code("20.30.40.50");
+        set resp.http.Country-Name = geoip.get_country_name("20.30.40.50");
+	}
+} -start
+
+client c1 {
+	txreq -url "/"
+	rxresp
+	expect resp.http.Country-Code == "US"
+	expect resp.http.Country-Name == "United States"
+}
+
+client c1 -run
