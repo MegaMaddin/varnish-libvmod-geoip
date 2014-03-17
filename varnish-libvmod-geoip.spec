@@ -1,8 +1,8 @@
 %define         _varnish           varnish
-%define         _varnishbuildver   3.0.3
+%define         _varnishbuildver   3.0.5
 
 Name:           varnish-libvmod-geoip
-Version:        0.4
+Version:        0.5
 Release:        1%{?dist}
 
 License:        BSD
@@ -16,7 +16,7 @@ Source1:        http://repo.varnish-cache.org/source/%{_varnish}-%{_varnishbuild
 # libvmod-geoip build requirements
 BuildRequires:  GeoIP-devel GeoIP %{?el5:GeoIP-data}
 # Varnish build requirements
-BuildRequires:  pcre-devel automake libtool pkgconfig ncurses-devel libxslt groff
+BuildRequires:  pcre-devel automake libtool pkgconfig ncurses-devel libxslt groff readline-devel
 
 Requires:       %{_varnish} = %{_varnishbuildver}
 Requires:       %{_varnish}-libs = %{_varnishbuildver}
@@ -29,11 +29,11 @@ BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}
 This Varnish-Module enhances the varnish caching server to use the
 Geo-IP functionality inside VCL-Code.
 
-
 %prep
 %setup -n %{name}
-# vmods need the compiled varnish sources to build
-# so first we have to build varnish
+
+# to build a VMOD, we'll need the compiled varnish source tree
+# so we have to build varnish first
 %setup -n %{name} -D -T -a 1
 cd %{_varnish}-%{_varnishbuildver}
 %configure && %{__make} %{?_smp_mflags}
@@ -60,7 +60,7 @@ export VMODDIR=%{_libdir}/varnish/vmods
 %{__make} check %{?el5:abs_top_builddir='$(VARNISHSRC)/$(top_builddir)/'}
 
 %install
-%{__rm} -rf %{buildroot}
+[ %{buildroot} != "/" ] && %{__rm} -rf %{buildroot}
 %{__make} install DESTDIR=%{buildroot}
 
 # adopted from varnish.spec
@@ -69,7 +69,7 @@ find %{buildroot}/%{_libdir}/ -name '*.la' -exec rm -f {} ';'
 find %{buildroot}/%{_libdir}/ -name '*.a' -exec rm -f {} ';'
 
 %clean
-%{__rm} -rf %{buildroot}
+[ %{buildroot} != "/" ] && %{__rm} -rf %{buildroot}
 
 %post -p /sbin/ldconfig
 
@@ -81,6 +81,12 @@ find %{buildroot}/%{_libdir}/ -name '*.a' -exec rm -f {} ';'
 %{_mandir}/man3/vmod_geoip.3.gz
 
 %changelog
+* Mon Mar 17 2014 Martin Probst <github@megamaddin.org> 0.5-1
+- added get_continent_code function to be almost feature complete with
+  GeoIP Country Edition
+- added tests for new feature
+- restructured code for better readability
+
 * Thu May 09 2013 Martin Probst <github@megamaddin.org> - 0.4-1
 - Changed function-calls from unsupported IP args, to supported STRING args
 - added manpage

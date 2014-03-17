@@ -1,6 +1,6 @@
 .\" Man page generated from reStructeredText.
 .
-.TH VMOD_GEOIP 3 "2013-05-13" "0.4" ""
+.TH VMOD_GEOIP 3 "2014-03-17" "0.5" ""
 .SH NAME
 vmod_geoip \- Varnish Geoip Module
 .
@@ -125,7 +125,36 @@ vcl_recv {
     set req.http.X\-Country\-Name = geoip.get_country_name(req.http.X\-Forwarded\-For);
 }
 .ft P
+..UNINDENT
+.SS get_continent_code
+.INDENT 0.0
+.TP
+.B Prototype
+.sp
+.nf
+.ft C
+get_continent_code(STRING S)
+.ft P
 .fi
+.TP
+.B Return value
+.
+STRING continent code, NULL as STRING if ip address was not found in the Geoip database.
+.TP
+.B Description
+.
+Returns the continent code which belongs to the passed ip address.
+.TP
+.B Example
+.sp
+.nf
+.ft C
+vcl_recv {
+    set req.http.X\-Forwarded\-For = client.ip;
+    set req.http.X\-Continent\-Code = geoip.get_continent_code(req.http.X\-Forwarded\-For);
+}
+.ft P
+.fifi
 .UNINDENT
 .SH INSTALLATION
 .sp
