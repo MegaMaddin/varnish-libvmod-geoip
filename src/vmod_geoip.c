@@ -59,8 +59,9 @@ vmod_load_geoip_db(struct sess *sp, struct vmod_priv *priv, const char *geoip_db
     if(!(access(geoip_db, R_OK))) {
         VSL(SLT_Debug, 0, "%s: loading GeoIP-DB %s", VMOD_NAME, geoip_db);
         vmg->geoip = GeoIP_open(geoip_db, GEOIP_MMAP_CACHE);
-        if(vmg->geoip == NULL) 
+        if(vmg->geoip == NULL) {
             VSL(SLT_Debug, 0, "%s: failed loading %s: %s", VMOD_NAME, geoip_db, strerror(errno));
+        }
     } else {
         VSL(SLT_Debug, 0, "%s: failed to access %s: %s", VMOD_NAME, geoip_db, strerror(errno));
     }
@@ -74,22 +75,15 @@ vmod_get_country_code(struct sess *sp, struct vmod_priv *priv, const char *ip)
     CHECK_OBJ_NOTNULL(vmg, VMGEOIP_MAGIC);
     const char *cc;
 
-    if(vmg->geoip == NULL) {
-        VSL(SLT_Debug, 0, "%s: GeoIP is not correctly initialized, maybe failed to load the database?", VMOD_NAME);
-        cc = not_found;
-        return(cc);
-    }
-
-    if(ip == NULL) {
-        VSL(SLT_Debug, 0, "%s: IP string is NULL, passed the correct header?", VMOD_NAME);
-        cc = not_found;
-        return(cc);
+    if(check_initialized(vmg, ip)) {
+        return(not_found);
     }
 
     cc = GeoIP_country_code_by_addr(vmg->geoip, ip);
 
-    if(cc == NULL)
+    if(cc == NULL) {
         cc = not_found;
+    }
 
     return(cc);
 }
@@ -102,24 +96,60 @@ vmod_get_country_name(struct sess *sp, struct vmod_priv *priv, const char *ip)
     CHECK_OBJ_NOTNULL(vmg, VMGEOIP_MAGIC);
     const char *cn;
  
-    if(vmg->geoip == NULL) {
-        VSL(SLT_Debug, 0, "%s: GeoIP is not correctly initialized, maybe failed to load the database?", VMOD_NAME);
-        cn = not_found;
-        return(cn);
-    }
-
-    if(ip == NULL) {
-        VSL(SLT_Debug, 0, "%s: IP string is NULL, passed the correct header?", VMOD_NAME);
-        cn = not_found;
-        return(cn);
+    if((check_initialized(vmg, ip)) != 0) {
+        return(not_found);
     }
 
     cn = GeoIP_country_name_by_addr(vmg->geoip, ip);
 
-    if(cn == NULL)
+    if(cn == NULL) {
         cn = not_found;
+    }
 
     return(cn);
+}
+
+const char * __match_proto__()
+vmod_get_continent_code(struct sess *sp, struct vmod_priv *priv, const char *ip)
+{
+    vmod_geoip *vmg = (vmod_geoip *)priv->priv;
+    CHECK_OBJ_NOTNULL(sp, SESS_MAGIC);
+    CHECK_OBJ_NOTNULL(vmg, VMGEOIP_MAGIC);
+    const char *co;
+
+    if(check_initialized(vmg, ip)) {
+        return(not_found);
+    }
+
+    co = GeoIP_continent_by_id(GeoIP_country_id_by_addr(vmg->geoip, ip));
+
+    if(co == NULL || (strncmp(co, "--", strlen("--")) == 0)) {
+        co = not_found;
+    }
+
+    return(co);
+}
+
+int check_initialized(vmod_geoip *vmg, const char *ip) {
+
+    if(vmg->geoip == NULL) {
+        VSL(SLT_Debug, 0, "%s: GeoIP is not correctly initialized, maybe failed to load the database?", VMOD_NAME);
+        goto ERR;
+    }
+
+    if(ip == NULL) {
+        VSL(SLT_Debug, 0, "%s: IP string is NULL, passed the correct header?", VMOD_NAME);
+        goto ERR;
+    }
+
+    /* should never happen */
+    AN(vmg->geoip);
+    AN(ip);
+
+    return(0);
+
+    ERR:
+    return(-1);
 }
 
 void

@@ -32,3 +32,4 @@ Init geoip_init
 Function VOID load_geoip_db(PRIV_VCL, STRING)
 Function STRING get_country_code(PRIV_VCL, STRING)
 Function STRING get_country_name(PRIV_VCL, STRING)
+Function STRING get_continent_code(PRIV_VCL, STRING)
